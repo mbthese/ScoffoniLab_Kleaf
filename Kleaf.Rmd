@@ -1,0 +1,44 @@
+---
+title: "Kleaf"
+author: "Marion Boisseaux"
+date: "2024-11-01"
+output: html_document
+---
+
+#Library
+```{r}
+library(readxl)
+library(ggplot2)
+library(tidyr)
+```
+
+
+#Data
+```{r}
+
+data_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx")
+
+```
+
+#Clean
+```{r}
+dim(data_Kleaf)
+#[1] 27 31
+data_Kleaf_clean <- data_Kleaf[-1, ] #remove first row
+dim(data_Kleaf_clean)
+#[1] 26 31
+data_Kleaf_clean2 <- data_Kleaf_clean %>% 
+  filter(Notes != "cv too high")
+dim(data_Kleaf_clean2)
+#[1]  3 31
+```
+
+#Plot
+```{r}
+data_Kleaf_clean2$Individual <- as.factor(data_Kleaf_clean2$Individual)
+data_Kleaf_clean2 %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
+  geom_point()
+```
+
