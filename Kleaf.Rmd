@@ -10,35 +10,177 @@ output: html_document
 library(readxl)
 library(ggplot2)
 library(tidyr)
+library(dplyr)
+library(lme4)
 ```
 
 
 #Data
 ```{r}
 
-data_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx")
+CESE_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "CESE")
 
 ```
 
 #Clean
 ```{r}
-dim(data_Kleaf)
-#[1] 27 31
-data_Kleaf_clean <- data_Kleaf[-1, ] #remove first row
-dim(data_Kleaf_clean)
-#[1] 26 31
-data_Kleaf_clean2 <- data_Kleaf_clean %>% 
+dim(CESE_Kleaf)
+#[1] 29 31
+ CESE_Kleaf_clean <- CESE_Kleaf %>% 
+  filter(Specie == "CESE")
+dim(CESE_Kleaf_clean)
+#[1] 28 31
+CESE_Kleaf_clean2 <- CESE_Kleaf_clean %>% 
   filter(Notes != "cv too high")
-dim(data_Kleaf_clean2)
-#[1]  3 31
+dim(CESE_Kleaf_clean2)
+#[1]  25 31
 ```
+
+#fit model
+```{r}
+#log model: y = a+b * log(x)
+#a expected value when x is 1 
+
+logmodel <- lm(CESE_Kleaf_clean2$`Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ~ log(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
+summary(logmodel)
+#look at the estimates
+
+# fitted model : y = -2.455 - 11.964 * ln(x)
+#but: Multiple R-squared:  0.5678 but is not a strong model
+# p-value: 2.131e-05 and model is significant
+
+#expo model
+expomodel <- lm(CESE_Kleaf_clean2$`Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ~ exp(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
+summary(expomodel)
+
+#other log model like article
+logmodel_adjusted <- nls(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ~ a / (1 + b * log(`Lowest Psileaf (Mpa)`)),
+                          data = CESE_Kleaf_clean2,
+                          start = list(a = 1, b = 1))
+summary(logmodel_adjusted)
+# Estimate Std. Error t value Pr(>|t|)    
+#a  0.03600    0.39717   0.091    0.929    
+#b  1.03063
+
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0 <- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=CESE_Kleaf_clean2)  
+summary(model.0)
+alpha.0 <- exp(coef(model.0)[1])
+beta.0 <- coef(model.0)[2]
+
+list(alpha = alpha.0, beta = beta.0)
+
+# $alpha
+# (Intercept) 
+#    11.80257 
+# 
+# $beta
+# `Lowest Psileaf (Mpa)` 
+#               -1.38641 
+#output
+y_model <-  11.80257 * exp( -1.38641  * x_seq )
+```
+
 
 #Plot
 ```{r}
-data_Kleaf_clean2$Individual <- as.factor(data_Kleaf_clean2$Individual)
-data_Kleaf_clean2 %>%
+# Create a sequence of x values for the regression line from excel
+x_seq <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
+y_seq <- -7.93 * log(x_seq) + 0.4043
+
+# Create a sequence of x values for the regression line from what i found in R
+y_log <- - 11.964 * log(x_seq) -2.455
+
+#other model 
+#a / (1 + b * log(`Lowest Psileaf (Mpa)`))
+y_log2 <- 0.03600/ 1+ 1.03063 * log(x_seq)
+
+#other model
+y_model <-  11.80257 * exp( -1.38641  * x_seq )
+
+
+
+CESE_Kleaf_clean2$Individual <- as.factor(CESE_Kleaf_clean2$Individual)
+CESE_Kleaf_clean2 %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point()
+  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  labs(
+    x = "Leaf water potential (MPa)",
+    y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  )+
+  theme_minimal()+
+#geom_line(aes(x = x_seq, y = y_seq), color = "green") +
+ #geom_line(aes(x = x_seq, y = y_log), color = "red")+
+#  geom_line(aes(x = x_seq, y = y_log2), color = "black") +#pas du tout!
+geom_line(aes(x = x_seq, y = y_model), color = 'black', size=2, alpha=0.7)
+  
+```
+
+probably the point at Kleaf = 60 is too high
+
+
+#PADI
+```{r}
+
+PADI_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "PADI")
+
+```
+
+#Clean
+```{r}
+dim(PADI_Kleaf)
+#[1] 22 31
+ PADI_Kleaf_clean <- PADI_Kleaf %>% 
+  filter(Specie == "PADI") %>%
+   drop_na(`Psileaf_fin (Mpa)`)
+dim(PADI_Kleaf_clean)
+#[1] 23 31
+
+
+
+```
+
+#fit model
+```{r}
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0.padi<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=PADI_Kleaf_clean)  
+summary(model.0.padi)
+alpha.0.padi <- exp(coef(model.0.padi)[1])
+beta.0.padi <- coef(model.0.padi)[2]
+
+list(alpha = alpha.0.padi, beta = beta.0.padi)
+
+# Create a sequence of x values for the regression line from excel
+x_seq.padi <- seq(min(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+#output model
+y_model.padi <-  37.95466   * exp(-3.568469   * x_seq.padi ) #replace here
+```
+
+#plot
+```{r}
+PADI_Kleaf_clean$Individual <- as.factor(PADI_Kleaf_clean$Individual)
+PADI_Kleaf_clean %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
+  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  labs(
+    x = "Leaf water potential (MPa)",
+    y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  )+
+  theme_minimal()+
+geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=0.7)+
+   annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 ```
 
