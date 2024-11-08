@@ -12,17 +12,19 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(lme4)
+library(ggpubr)
 ```
 
+#CESE
 
-#Data
+##Data
 ```{r}
 
 CESE_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "CESE")
 
 ```
 
-#Clean
+##Clean
 ```{r}
 dim(CESE_Kleaf)
 #[1] 29 31
@@ -36,7 +38,7 @@ dim(CESE_Kleaf_clean2)
 #[1]  25 31
 ```
 
-#fit model
+##fit model
 ```{r}
 #log model: y = a+b * log(x)
 #a expected value when x is 1 
@@ -75,19 +77,11 @@ beta.0 <- coef(model.0)[2]
 
 list(alpha = alpha.0, beta = beta.0)
 
-# $alpha
-# (Intercept) 
-#    11.80257 
-# 
-# $beta
-# `Lowest Psileaf (Mpa)` 
-#               -1.38641 
-#output
 y_model <-  11.80257 * exp( -1.38641  * x_seq )
 ```
 
 
-#Plot
+##Plot
 ```{r}
 # Create a sequence of x values for the regression line from excel
 x_seq <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
@@ -106,20 +100,26 @@ y_model <-  11.80257 * exp( -1.38641  * x_seq )
 
 
 CESE_Kleaf_clean2$Individual <- as.factor(CESE_Kleaf_clean2$Individual)
-CESE_Kleaf_clean2 %>%
+
+CESE.plot <- CESE_Kleaf_clean2 %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
   geom_point(color ='gray', size= 3, alpha = 0.7)+
   labs(
     x = "Leaf water potential (MPa)",
-    y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+     y = bquote(atop("Leaf hydraulic conductance","(mmol"~m^{-2}~s^{-1}~ MPa^{-1}~")"))
   )+
   theme_minimal()+
+  theme(axis.title.x = element_blank(), axis.title.y = element_text(size =12))+
 #geom_line(aes(x = x_seq, y = y_seq), color = "green") +
  #geom_line(aes(x = x_seq, y = y_log), color = "red")+
 #  geom_line(aes(x = x_seq, y = y_log2), color = "black") +#pas du tout!
-geom_line(aes(x = x_seq, y = y_model), color = 'black', size=2, alpha=0.7)
+geom_line(aes(x = x_seq, y = y_model), color = 'black', size=2, alpha=0.7)+
+  theme(
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 20)  # adjust margins
+  )
   
+CESE.plot
 ```
 
 probably the point at Kleaf = 60 is too high
@@ -132,7 +132,7 @@ PADI_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "PADI")
 
 ```
 
-#Clean
+##Clean
 ```{r}
 dim(PADI_Kleaf)
 #[1] 22 31
@@ -146,7 +146,7 @@ dim(PADI_Kleaf_clean)
 
 ```
 
-#fit model
+##fit model
 ```{r}
 #E(y)=αeβx+θ
 #help from https://rpubs.com/mengxu/exponential-model
@@ -168,10 +168,10 @@ x_seq.padi <- seq(min(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PADI_Kleaf_c
 y_model.padi <-  37.95466   * exp(-3.568469   * x_seq.padi ) #replace here
 ```
 
-#plot
+##plot
 ```{r}
 PADI_Kleaf_clean$Individual <- as.factor(PADI_Kleaf_clean$Individual)
-PADI_Kleaf_clean %>%
+PADI.plot <-PADI_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
   geom_point(color ='gray', size= 3, alpha = 0.7)+
@@ -180,7 +180,86 @@ PADI_Kleaf_clean %>%
     y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
   )+
   theme_minimal()+
-geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=0.7)+
-   annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=0.7)
+#+
+ #  annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+```
+
+#AVSA
+
+```{r}
+
+AVSA_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "AVSA")
+
+```
+
+##Clean
+```{r}
+dim(AVSA_Kleaf)
+#[1] 22 31
+ AVSA_Kleaf_clean <- AVSA_Kleaf %>% 
+  filter(Specie == "AVSA") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
+dim(AVSA_Kleaf_clean)
+
+
+
+
+```
+
+##fit model
+```{r}
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0.AVSA<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=AVSA_Kleaf_clean)  
+summary(model.0.AVSA)
+alpha.0.AVSA <- exp(coef(model.0.AVSA)[1])
+beta.0.AVSA <- coef(model.0.AVSA)[2]
+
+list(alpha = alpha.0.AVSA, beta = beta.0.AVSA)
+
+# Create a sequence of x values for the regression line from excel
+x_seq.AVSA <- seq(min(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+#output model
+y_model.AVSA <-   10.60017    * exp(-1.879197   * x_seq.AVSA ) #replace here
+```
+
+##plot
+```{r}
+AVSA_Kleaf_clean$Individual <- as.factor(AVSA_Kleaf_clean$Individual)
+
+AVSA.plot <- AVSA_Kleaf_clean %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
+  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.AVSA, y = y_model.AVSA), color = 'black', size=2, alpha=0.7)+
+  ylim(0,25)
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+```
+
+#all plots
+```{r}
+
+Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, nrow=1, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa"), font.label = list(face="bold.italic"), align = "v")
+
+annotate_figure(
+  Kleaf.plots,
+  bottom = text_grob("Leaf water potential (MPa)", size = 12)
+)
 ```
 
