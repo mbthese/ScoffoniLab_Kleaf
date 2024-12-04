@@ -77,7 +77,13 @@ beta.0 <- coef(model.0)[2]
 
 list(alpha = alpha.0, beta = beta.0)
 
+
+x_seq <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
 y_model <-  11.80257 * exp( -1.38641  * x_seq )
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.cese <- log(0.5) / beta.0[[1]]
+Psi_leaf_50.cese
 ```
 
 
@@ -117,7 +123,8 @@ CESE.plot <- CESE_Kleaf_clean2 %>%
 geom_line(aes(x = x_seq, y = y_model), color = 'black', size=2, alpha=0.7)+
   theme(
     plot.margin = margin(t = 10, r = 10, b = 10, l = 20)  # adjust margins
-  )
+  )+
+  geom_vline(xintercept = Psi_leaf_50.cese, linetype = "dashed", color = 'red')
   
 CESE.plot
 ```
@@ -166,6 +173,10 @@ x_seq.padi <- seq(min(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PADI_Kleaf_c
 
 #output model
 y_model.padi <-  37.95466   * exp(-3.568469   * x_seq.padi ) #replace here
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.padi <- log(0.5) / beta.0.padi[[1]]
+Psi_leaf_50.padi
 ```
 
 ##plot
@@ -182,7 +193,8 @@ PADI.plot <-PADI_Kleaf_clean %>%
   theme_minimal()+
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
-geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=0.7)
+geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=0.7)+
+  geom_vline(xintercept = Psi_leaf_50.padi, linetype ="dashed", color = 'red')
 #+
  #  annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 ```
@@ -229,7 +241,11 @@ list(alpha = alpha.0.AVSA, beta = beta.0.AVSA)
 x_seq.AVSA <- seq(min(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
 #output model
-y_model.AVSA <-   10.60017    * exp(-1.879197   * x_seq.AVSA ) #replace here
+y_model.AVSA <-   10.60017    * exp(-1.879197   * x_seq.AVSA ) 
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.avsa <- log(0.5) / beta.0.AVSA[[1]]
+Psi_leaf_50.avsa
 ```
 
 ##plot
@@ -248,18 +264,243 @@ AVSA.plot <- AVSA_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.AVSA, y = y_model.AVSA), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)
+  ylim(0,25)+
+   geom_vline(xintercept = Psi_leaf_50.avsa, linetype = "dashed", color = 'red')
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+```
+
+#STDE
+steinchisma decipiens
+```{r}
+
+STDE_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "STDE")
+
+```
+
+##Clean
+```{r}
+dim(STDE_Kleaf)
+#[1] 22 31
+ STDE_Kleaf_clean <- STDE_Kleaf %>% 
+  filter(Specie == "STDE") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
+dim(STDE_Kleaf_clean)
+
+
+
+
+```
+
+##fit model
+```{r}
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0.STDE<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=STDE_Kleaf_clean)  
+summary(model.0.STDE)
+alpha.0.STDE <- exp(coef(model.0.STDE)[1])
+beta.0.STDE <- coef(model.0.STDE)[2]
+
+list(alpha = alpha.0.STDE, beta = beta.0.STDE)
+
+# Create a sequence of x values for the regression line from excel
+x_seq.STDE <- seq(min(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+#output model
+y_model.STDE <-   alpha.0.STDE[[1]]   * exp(beta.0.STDE[[1]]  * x_seq.STDE ) 
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.STDE <- log(0.5) / beta.0.STDE[[1]]
+Psi_leaf_50.STDE
+```
+
+##plot
+```{r}
+STDE_Kleaf_clean$Individual <- as.factor(STDE_Kleaf_clean$Individual)
+
+STDE.plot <- STDE_Kleaf_clean %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
+  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.STDE, y = y_model.STDE), color = 'black', size=2, alpha=0.7)+
+  #ylim(0,25)
+   geom_vline(xintercept = Psi_leaf_50.STDE, linetype = "dashed", color = 'red')
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+
+STDE.plot
+```
+
+#DASP
+
+```{r}
+
+DASP_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "DASP")
+
+```
+
+##Clean
+```{r}
+dim(DASP_Kleaf)
+#[1] 22 31
+ DASP_Kleaf_clean <- DASP_Kleaf %>% 
+  filter(Specie == "DASP") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
+dim(DASP_Kleaf_clean)
+
+
+
+
+```
+
+##fit model
+```{r}
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0.DASP<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=DASP_Kleaf_clean)  
+summary(model.0.DASP)
+alpha.0.DASP <- exp(coef(model.0.DASP)[1])
+beta.0.DASP <- coef(model.0.DASP)[2]
+
+list(alpha = alpha.0.DASP, beta = beta.0.DASP)
+
+# Create a sequence of x values for the regression line from excel
+x_seq.DASP <- seq(min(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+#output model
+y_model.DASP <-   13.66583   * exp(-1.193013  * x_seq.DASP ) 
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.DASP <- log(0.5) / beta.0.DASP[[1]]
+Psi_leaf_50.DASP
+```
+
+##plot
+```{r}
+DASP_Kleaf_clean$Individual <- as.factor(DASP_Kleaf_clean$Individual)
+
+DASP.plot <- DASP_Kleaf_clean %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
+  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.DASP, y = y_model.DASP), color = 'black', size=2, alpha=0.7)+
+  ylim(0,25)+
+   geom_vline(xintercept = Psi_leaf_50.DASP, linetype = "dashed", color = 'red')
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+```
+
+#CHLA
+Chasmanthium latifolium
+```{r}
+
+CHLA_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "CHLA")
+
+```
+
+##Clean
+```{r}
+dim(CHLA_Kleaf)
+#[1] 22 31
+ CHLA_Kleaf_clean <- CHLA_Kleaf %>% 
+  filter(Specie == "CHLA") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
+dim(CHLA_Kleaf_clean)
+
+#discard row/individual if values between two initial potentials is greater than 0.1 MPa; column `Psileaf_ini_1 (Mpa)` and column `Psileaf_ini_2 (Mpa)`
+
+CHLA_Kleaf_clean2 <- CHLA_Kleaf_clean %>% 
+  filter(is.na(`Psileaf_ini_1 (Mpa)`) | abs(`Psileaf_ini_1 (Mpa)` - `Psileaf_ini_2 (Mpa)`) <= 0.1)
+dim(CHLA_Kleaf_clean2)
+
+CHLA_Kleaf_clean <- CHLA_Kleaf_clean2
+```
+
+##fit model
+```{r}
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0.CHLA<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=CHLA_Kleaf_clean)  
+summary(model.0.CHLA)
+alpha.0.CHLA <- exp(coef(model.0.CHLA)[1])
+beta.0.CHLA <- coef(model.0.CHLA)[2]
+
+list(alpha = alpha.0.CHLA, beta = beta.0.CHLA)
+
+# Create a sequence of x values for the regression line from excel
+x_seq.CHLA <- seq(min(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+#output model
+y_model.CHLA <-   alpha.0.CHLA[[1]]   * exp(beta.0.CHLA[[1]]  * x_seq.CHLA ) 
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.CHLA <- log(0.5) / beta.0.CHLA[[1]]
+Psi_leaf_50.CHLA
+```
+
+##plot
+```{r}
+CHLA_Kleaf_clean$Individual <- as.factor(CHLA_Kleaf_clean$Individual)
+
+CHLA.plot <- CHLA_Kleaf_clean %>%
+ #filter(Date == "11272024") %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
+  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())
+#geom_line(aes(x = x_seq.CHLA, y = y_model.CHLA), color = 'black', size=2, alpha=0.7)+
+  #ylim(0,25)
+ #  geom_vline(xintercept = Psi_leaf_50.CHLA, linetype = "dashed", color = 'red')
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+
+CHLA.plot
 ```
 
 #all plots
 ```{r}
 
-Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, nrow=1, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa"), font.label = list(face="bold.italic"), align = "v")
+Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, 
+STDE.plot, DASP.plot, CHLA.plot, nrow=2, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium"), font.label = list(face="bold.italic"), align = "v")
 
-annotate_figure(
+Kleaf.plots <- annotate_figure(
   Kleaf.plots,
   bottom = text_grob("Leaf water potential (MPa)", size = 12)
 )
+
+Kleaf.plots
+
+ggsave(filename = "Kleaf_plots.jpg", plot = Kleaf.plots, path = "result", width = 10, height = 6)
 ```
 
