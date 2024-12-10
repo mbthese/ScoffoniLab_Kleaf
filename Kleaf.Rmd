@@ -72,13 +72,12 @@ summary(logmodel_adjusted)
 # Estimate the rest parameters using a linear model
 model.0 <- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=CESE_Kleaf_clean2)  
 summary(model.0)
-alpha.0 <- exp(coef(model.0)[1])
-beta.0 <- coef(model.0)[2]
+alpha.0.CESE <- exp(coef(model.0)[1])
+beta.0.CESE <- coef(model.0)[2]
 
 list(alpha = alpha.0, beta = beta.0)
 
-
-x_seq <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
+x_seq.CESE <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
 y_model <-  11.80257 * exp( -1.38641  * x_seq )
 
 # Calculate Ψleaf at 50% loss of Kleaf
@@ -90,18 +89,18 @@ Psi_leaf_50.cese
 ##Plot
 ```{r}
 # Create a sequence of x values for the regression line from excel
-x_seq <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
+x_seq.CESE <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
 y_seq <- -7.93 * log(x_seq) + 0.4043
 
 # Create a sequence of x values for the regression line from what i found in R
-y_log <- - 11.964 * log(x_seq) -2.455
+y_log <- - 11.964 * log(x_seq.CESE) -2.455
 
 #other model 
 #a / (1 + b * log(`Lowest Psileaf (Mpa)`))
-y_log2 <- 0.03600/ 1+ 1.03063 * log(x_seq)
+y_log2 <- 0.03600/ 1+ 1.03063 * log(x_seq.CESE)
 
 #other model
-y_model <-  11.80257 * exp( -1.38641  * x_seq )
+y_model <-  11.80257 * exp( -1.38641  * x_seq.CESE)
 
 
 
@@ -502,5 +501,47 @@ Kleaf.plots <- annotate_figure(
 Kleaf.plots
 
 ggsave(filename = "Kleaf_plots.jpg", plot = Kleaf.plots, path = "result", width = 10, height = 6)
+```
+
+#Kmax
+```{r}
+# Calculate kmax (average Kleaf for Psileaf = 0 to -0.3 MPa)
+# Select x values between 0 and -0.3 MPa
+x_filtered.CESE <- x_seq.CESE[x_seq.CESE <= 0.3 & x_seq.CESE >= 0]
+x_filtered.PADI <- x_seq.padi[x_seq.padi <= 0.3 & x_seq.padi >= 0]
+x_filtered.AVSA <- x_seq.AVSA[x_seq.AVSA <= 0.3 & x_seq.AVSA >= 0]
+x_filtered.STDE <- x_seq.STDE[x_seq.STDE <= 0.3 & x_seq.STDE >= 0]
+x_filtered.DASP <- x_seq.DASP[x_seq.DASP <= 0.3 & x_seq.DASP >= 0]
+x_filtered.CHLA <- x_seq.CHLA[x_seq.CHLA <= 0.3 & x_seq.CHLA >= 0]
+
+
+# Compute the corresponding y values
+y_filtered.CESE <- alpha.0.CESE * exp(beta.0.CESE * x_filtered.CESE)
+
+y_filtered.PADI <- alpha.0.padi * exp(beta.0.padi * x_filtered.PADI)
+
+y_filtered.AVSA <- alpha.0.AVSA * exp(beta.0.AVSA * x_filtered.AVSA)
+
+y_filtered.STDE <- alpha.0.STDE * exp(beta.0.STDE * x_filtered.STDE)
+
+y_filtered.DASP <- alpha.0.DASP * exp(beta.0.DASP * x_filtered.DASP)
+
+y_filtered.CHLA <- alpha.0.CHLA * exp(beta.0.CHLA * x_filtered.CHLA)
+
+# Calculate the average of Kleaf in the selected range
+kmax.CESE <- mean(y_filtered.CESE)
+kmax.PADI <- mean(y_filtered.PADI)
+kmax.AVSA <- mean(y_filtered.AVSA)
+kmax.STDE <- mean(y_filtered.STDE)
+kmax.DASP <- mean(y_filtered.DASP)
+kmax.CHLA <- mean(y_filtered.CHLA)
+
+kmax.AVSA
+kmax.CESE
+kmax.CHLA
+kmax.DASP
+kmax.PADI
+kmax.STDE
+
 ```
 
