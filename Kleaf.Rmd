@@ -196,6 +196,7 @@ geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=
   geom_vline(xintercept = Psi_leaf_50.padi, linetype ="dashed", color = 'red')
 #+
  #  annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+PADI.plot
 ```
 
 #AVSA
@@ -299,7 +300,7 @@ dim(STDE_Kleaf_clean)
 
 #Prepare fitting a nonlinear model
 # Estimate the rest parameters using a linear model
-model.0.STDE<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=STDE_Kleaf_clean)  
+model.0.STDE<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=STDE_Kleaf_clean %>% filter (Light != 0))  
 summary(model.0.STDE)
 alpha.0.STDE <- exp(coef(model.0.STDE)[1])
 beta.0.STDE <- coef(model.0.STDE)[2]
@@ -323,8 +324,9 @@ STDE_Kleaf_clean$Individual <- as.factor(STDE_Kleaf_clean$Individual)
 
 STDE.plot <- STDE_Kleaf_clean %>%
   ggplot()+
-  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+   scale_color_manual(values = c('gray', 'red'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -505,8 +507,11 @@ dim(ZEMA_Kleaf)
   filter(Specie == "ZEMA") %>%
    drop_na(`Psileaf_fin (Mpa)`) %>%
    drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
-dim(ZEMA_Kleaf_clean)
+ 
+ZEMA_Kleaf_clean <- ZEMA_Kleaf_clean[which(!(ZEMA_Kleaf_clean$Individual == 2 & ZEMA_Kleaf_clean$Leaf == 2)), ]
 
+
+dim(ZEMA_Kleaf_clean)
 
 
 
@@ -581,16 +586,45 @@ ggsave(filename = "Kleaf_plots.jpg", plot = Kleaf.plots, path = "result", width 
 #Kmax - first try
 using model
 ```{r}
+
+#no light treatment not yet created
 # Calculate kmax (average Kleaf for Psileaf = 0 to -0.3 MPa)
 # Select x values between 0 and -0.3 MPa
 x_filtered.CESE <- x_seq.CESE[x_seq.CESE <= 0.3 & x_seq.CESE >= 0]
 x_filtered.PADI <- x_seq.padi[x_seq.padi <= 0.3 & x_seq.padi >= 0]
 x_filtered.AVSA <- x_seq.AVSA[x_seq.AVSA <= 0.3 & x_seq.AVSA >= 0]
-x_filtered.STDE <- x_seq.STDE[x_seq.STDE <= 0.3 & x_seq.STDE >= 0]
 x_filtered.DASP <- x_seq.DASP[x_seq.DASP <= 0.3 & x_seq.DASP >= 0]
-x_filtered.CHLA <- x_seq.CHLA[x_seq.CHLA <= 0.3 & x_seq.CHLA >= 0]
-x_filtered.ZEMA <- x_seq.ZEMA[x_seq.ZEMA <= 0.3 & x_seq.ZEMA >= 0]
 
+# do not include when light =0
+STDE_Kleaf_no_light <- STDE_Kleaf_clean %>% filter(Light!=0) 
+
+x_seq.STDE.nolight <- seq(
+  min(STDE_Kleaf_no_light$`Lowest Psileaf (Mpa)`),
+  max(STDE_Kleaf_no_light$`Lowest Psileaf (Mpa)`),
+  length.out = nrow(STDE_Kleaf_no_light)
+)
+
+x_filtered.STDE <- x_seq.STDE.nolight[x_seq.STDE.nolight <= 0.3 & x_seq.STDE.nolight >= 0]
+
+CHLA_Kleaf_no_light <- CHLA_Kleaf_clean %>% filter(Light!=0) 
+
+x_seq.CHLA.nolight <- seq(
+  min(CHLA_Kleaf_no_light$`Lowest Psileaf (Mpa)`),
+  max(CHLA_Kleaf_no_light$`Lowest Psileaf (Mpa)`),
+  length.out = nrow(CHLA_Kleaf_no_light)
+)
+
+
+x_filtered.CHLA <- x_seq.CHLA.nolight[x_seq.CHLA.nolight <= 0.3 & x_seq.CHLA.nolight >= 0]
+
+ZEMA_Kleaf_no_light <- ZEMA_Kleaf_clean %>% filter(Light!=0) 
+
+x_seq.ZEMA.nolight <- seq(
+  min(ZEMA_Kleaf_no_light$`Lowest Psileaf (Mpa)`),
+  max(ZEMA_Kleaf_no_light$`Lowest Psileaf (Mpa)`),
+  length.out = nrow(ZEMA_Kleaf_no_light))
+
+x_filtered.ZEMA <- x_seq.ZEMA.nolight[x_seq.ZEMA.nolight <= 0.15 & x_seq.ZEMA.nolight >= 0]
 
 # Compute the corresponding y values
 y_filtered.CESE <- alpha.0.CESE * exp(beta.0.CESE * x_filtered.CESE)
@@ -599,13 +633,14 @@ y_filtered.PADI <- alpha.0.padi * exp(beta.0.padi * x_filtered.PADI)
 
 y_filtered.AVSA <- alpha.0.AVSA * exp(beta.0.AVSA * x_filtered.AVSA)
 
-y_filtered.STDE <- alpha.0.STDE * exp(beta.0.STDE * x_filtered.STDE)
-
 y_filtered.DASP <- alpha.0.DASP * exp(beta.0.DASP * x_filtered.DASP)
 
-y_filtered.CHLA <- alpha.0.CHLA * exp(beta.0.CHLA * x_filtered.CHLA)
 
-y_filtered.ZEMA <- alpha.0.ZEMA * exp(beta.0.ZEMA * x_filtered.ZEMA)
+
+#those that had the no light measurements
+y_filtered.STDE <- alpha.0.STDE * exp(beta.0.STDE * x_filtered.STDE)
+y_filtered.CHLA <- alpha.0.CHLA * exp(beta.0.CHLA * x_filtered.CHLA)
+y_filtered.ZEMA <- alpha.0.ZEMA * exp(beta.0.ZEMA * x_seq.ZEMA.nolight)
 
 # Calculate the average of Kleaf in the selected range
 kmax.CESE <- mean(y_filtered.CESE)
