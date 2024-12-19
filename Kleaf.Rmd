@@ -567,11 +567,83 @@ geom_line(aes(x = x_seq.ZEMA, y = y_model.ZEMA), color = 'black', size=2, alpha=
 ZEMA.plot
 ```
 
+#NAVI
+Nassella/Stipa viridula
+```{r}
+
+NAVI_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "NAVI")
+
+```
+
+##Clean
+```{r}
+dim(NAVI_Kleaf)
+#[1] 22 31
+ NAVI_Kleaf_clean <- NAVI_Kleaf %>% 
+  filter(Specie == "NAVI") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
+dim(NAVI_Kleaf_clean)
+
+```
+
+##fit model
+```{r}
+#E(y)=αeβx+θ
+#help from https://rpubs.com/mengxu/exponential-model
+#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+
+#Prepare fitting a nonlinear model
+# Estimate the rest parameters using a linear model
+model.0.NAVI<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=NAVI_Kleaf_clean %>% filter (Light != 0))  
+summary(model.0.NAVI)
+alpha.0.NAVI <- exp(coef(model.0.NAVI)[1])
+beta.0.NAVI <- coef(model.0.NAVI)[2]
+
+list(alpha = alpha.0.NAVI, beta = beta.0.NAVI)
+
+# Create a sequence of x values for the regression line from excel
+x_seq.NAVI <- seq(min(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+#output model
+y_model.NAVI <-   alpha.0.NAVI[[1]]   * exp(beta.0.NAVI[[1]]  * x_seq.NAVI ) 
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.NAVI <- log(0.5) / beta.0.NAVI[[1]]
+Psi_leaf_50.NAVI
+```
+
+##plot
+```{r}
+NAVI_Kleaf_clean$Individual <- as.factor(NAVI_Kleaf_clean$Individual)
+NAVI_Kleaf_clean$Light <- as.factor(NAVI_Kleaf_clean$Light)
+
+NAVI.plot <- NAVI_Kleaf_clean %>%
+ #filter(Date == "11272024") %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+   scale_color_manual(values = c('gray', 'red'))+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.NAVI, y = y_model.NAVI), color = 'black', size=2, alpha=0.7)+
+  #ylim(0,25)
+   geom_vline(xintercept = Psi_leaf_50.NAVI, linetype = "dashed", color = 'red')
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+
+NAVI.plot
+```
+
 #all plots
 ```{r}
 
 Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, 
-STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, nrow=3, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays "), font.label = list(face="bold.italic"), align = "v")
+STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, nrow=3, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula"), font.label = list(face="bold.italic"), align = "v")
 
 Kleaf.plots <- annotate_figure(
   Kleaf.plots,
