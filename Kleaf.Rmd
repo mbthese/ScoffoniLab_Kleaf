@@ -13,6 +13,8 @@ library(tidyr)
 library(dplyr)
 library(lme4)
 library(ggpubr)
+library(devtools)
+library(grid) # For textGrob ggarrange plots details
 ```
 
 #CESE
@@ -38,71 +40,79 @@ dim(CESE_Kleaf_clean2)
 #[1]  25 31
 ```
 
-##fit model
+##FIT 
 ```{r}
-#log model: y = a+b * log(x)
-#a expected value when x is 1 
+#first look for outliers
+#format for fitting for Megan's script
+CESE_curve <- CESE_Kleaf_clean2 %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-logmodel <- lm(CESE_Kleaf_clean2$`Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ~ log(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
-summary(logmodel)
-#look at the estimates
+write.csv(x = CESE_curve, file = "result/CESE/CESE_curve.csv") #ready for 
 
-# fitted model : y = -2.455 - 11.964 * ln(x)
-#but: Multiple R-squared:  0.5678 but is not a strong model
-# p-value: 2.131e-05 and model is significant
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
 
-#expo model
-expomodel <- lm(CESE_Kleaf_clean2$`Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ~ exp(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
-summary(expomodel)
+CESE_linear <-  read.csv("result/CESE/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
 
-#other log model like article
-logmodel_adjusted <- nls(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ~ a / (1 + b * log(`Lowest Psileaf (Mpa)`)),
-                          data = CESE_Kleaf_clean2,
-                          start = list(a = 1, b = 1))
-summary(logmodel_adjusted)
-# Estimate Std. Error t value Pr(>|t|)    
-#a  0.03600    0.39717   0.091    0.929    
-#b  1.03063
+CESE_logistic <-  read.csv("result/CESE/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
 
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+CESE_sigmoidal <-  read.csv("result/CESE/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0 <- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=CESE_Kleaf_clean2)  
-summary(model.0)
-alpha.0.CESE <- exp(coef(model.0)[1])
-beta.0.CESE <- coef(model.0)[2]
+CESE_exp <-  read.csv("result/CESE/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
 
-list(alpha = alpha.0.CESE, beta = beta.0.CESE)
+CESE_exp2 <-  read.csv("result/CESE/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
 
+choose_model <- rbind(CESE_linear, CESE_logistic, CESE_sigmoidal, CESE_exp, CESE_exp2)
+
+#best model logistic
+
+CESE_logistic <-  read.csv("result/CESE/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
+
+# Create a sequence of x values for the regression line from excel
 x_seq.CESE <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
-y_model <-  11.80257 * exp( -1.38641  * x_seq.CESE )
 
-# Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.cese <- log(0.5) / beta.0.CESE[[1]]
-Psi_leaf_50.cese
+y_model.cese <- CESE_logistic$A.A/(1+((x_seq.CESE/CESE_logistic$C.Xo)^CESE_logistic$B.B))
+
+Psi_leaf_50.cese <- CESE_logistic$C.Xo
+#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
 ```
-
 
 ##Plot
 ```{r}
-# Create a sequence of x values for the regression line from excel
-x_seq.CESE <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
-y_seq <- -7.93 * log(x_seq.CESE) + 0.4043
-
-# Create a sequence of x values for the regression line from what i found in R
-y_log <- - 11.964 * log(x_seq.CESE) -2.455
-
-#other model 
-#a / (1 + b * log(`Lowest Psileaf (Mpa)`))
-y_log2 <- 0.03600/ 1+ 1.03063 * log(x_seq.CESE)
-
-#other model
-y_model <-  11.80257 * exp( -1.38641  * x_seq.CESE)
-
-
 
 CESE_Kleaf_clean2$Individual <- as.factor(CESE_Kleaf_clean2$Individual)
 
@@ -115,15 +125,12 @@ CESE.plot <- CESE_Kleaf_clean2 %>%
      y = bquote(atop("Leaf hydraulic conductance","(mmol"~m^{-2}~s^{-1}~ MPa^{-1}~")"))
   )+
   theme_minimal()+
-  theme(axis.title.x = element_blank(), axis.title.y = element_text(size =12))+
-#geom_line(aes(x = x_seq, y = y_seq), color = "green") +
- #geom_line(aes(x = x_seq, y = y_log), color = "red")+
-#  geom_line(aes(x = x_seq, y = y_log2), color = "black") +#pas du tout!
-geom_line(aes(x = x_seq.CESE, y = y_model), color = 'black', size=2, alpha=0.7)+
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.CESE, y = y_model.cese), color = 'black', size=2, alpha=0.7)+
   theme(
     plot.margin = margin(t = 10, r = 10, b = 10, l = 20)  # adjust margins
   )+
-  geom_vline(xintercept = Psi_leaf_50.cese, linetype = "dashed", color = 'red')
+ geom_vline(xintercept = Psi_leaf_50.cese, linetype = "dashed", color = 'red')
   
 CESE.plot
 ```
@@ -152,29 +159,75 @@ dim(PADI_Kleaf_clean)
 
 ```
 
-##fit model
+## FIT 
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+PADI_curve <- PADI_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.padi<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=PADI_Kleaf_clean)  
-summary(model.0.padi)
-alpha.0.padi <- exp(coef(model.0.padi)[1])
-beta.0.padi <- coef(model.0.padi)[2]
+write.csv(x = PADI_curve, file = "result/PADI/PADI_curve.csv") #ready for 
 
-list(alpha = alpha.0.padi, beta = beta.0.padi)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+PADI_linear <-  read.csv("result/PADI/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PADI_logistic <-  read.csv("result/PADI/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PADI_sigmoidal <-  read.csv("result/PADI/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PADI_exp <-  read.csv("result/PADI/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PADI_exp2 <-  read.csv("result/PADI/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(PADI_linear, PADI_logistic, PADI_sigmoidal, PADI_exp, PADI_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+PADI_exp <-  read.csv("result/PADI/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
-x_seq.padi <- seq(min(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+x_seq.PADI <- seq(min(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.padi <-  37.95466   * exp(-3.568469   * x_seq.padi ) #replace here
+y_model.PADI <- PADI_exp$A.A*exp(-PADI_exp$B.B*x_seq.PADI)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.padi <- log(0.5) / beta.0.padi[[1]]
+Psi_leaf_50.padi <- log(0.5)/(-PADI_exp$B.B)
 Psi_leaf_50.padi
 ```
 
@@ -192,12 +245,13 @@ PADI.plot <-PADI_Kleaf_clean %>%
   theme_minimal()+
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
-geom_line(aes(x = x_seq.padi, y = y_model.padi), color = 'black', size=2, alpha=0.7)+
-  geom_vline(xintercept = Psi_leaf_50.padi, linetype ="dashed", color = 'red')
+geom_line(aes(x = x_seq.PADI, y = y_model.PADI), color = 'black', size=2, alpha=0.7)+
+geom_vline(xintercept = Psi_leaf_50.padi, linetype ="dashed", color = 'red')
 #+
- #  annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+ #  annotate(geom='text',x=0.5,y=30,label="y = 86.05 * exp(-9.6 x)",fontface='bold', size=6)
 PADI.plot
 ```
+
 
 #AVSA
 
@@ -217,35 +271,80 @@ dim(AVSA_Kleaf)
    drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
 dim(AVSA_Kleaf_clean)
 
-
-
-
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+    AVSA_curve <- AVSA_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.AVSA<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=AVSA_Kleaf_clean)  
-summary(model.0.AVSA)
-alpha.0.AVSA <- exp(coef(model.0.AVSA)[1])
-beta.0.AVSA <- coef(model.0.AVSA)[2]
+write.csv(x = AVSA_curve, file = "result/AVSA/AVSA_curve.csv") #ready for 
 
-list(alpha = alpha.0.AVSA, beta = beta.0.AVSA)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+AVSA_linear <-  read.csv("result/AVSA/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+AVSA_logistic <-  read.csv("result/AVSA/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+AVSA_sigmoidal <-  read.csv("result/AVSA/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+AVSA_exp <-  read.csv("result/AVSA/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+AVSA_exp2 <-  read.csv("result/AVSA/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(AVSA_linear, AVSA_logistic, AVSA_sigmoidal, AVSA_exp, AVSA_exp2)
+choose_model
+#best model exponential
+
+AVSA_exp<-  read.csv("result/AVSA/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.AVSA <- seq(min(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.AVSA <-   10.60017    * exp(-1.879197   * x_seq.AVSA ) 
+y_model.AVSA <- AVSA_exp$A.A*exp(-AVSA_exp$B.B*x_seq.AVSA)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.avsa <- log(0.5) / beta.0.AVSA[[1]]
+Psi_leaf_50.avsa <- log(0.5)/(-AVSA_exp$B.B)
 Psi_leaf_50.avsa
+  
+
 ```
 
 ##plot
@@ -292,31 +391,79 @@ dim(STDE_Kleaf_clean)
 
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+STDE_curve <- STDE_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.STDE<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=STDE_Kleaf_clean %>% filter (Light != 0))  
-summary(model.0.STDE)
-alpha.0.STDE <- exp(coef(model.0.STDE)[1])
-beta.0.STDE <- coef(model.0.STDE)[2]
+write.csv(x = STDE_curve, file = "result/STDE/STDE_curve.csv") #ready for 
 
-list(alpha = alpha.0.STDE, beta = beta.0.STDE)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+STDE_linear <-  read.csv("result/STDE/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+STDE_logistic <-  read.csv("result/STDE/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+STDE_sigmoidal <-  read.csv("result/STDE/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+STDE_exp <-  read.csv("result/STDE/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+STDE_exp2 <-  read.csv("result/STDE/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(STDE_linear, STDE_logistic, STDE_sigmoidal, STDE_exp, STDE_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+#best model logistic
+
+STDE_logistic <-  read.csv("result/STDE/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.STDE <- seq(min(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.STDE <-   alpha.0.STDE[[1]]   * exp(beta.0.STDE[[1]]  * x_seq.STDE ) 
+y_model.STDE <- STDE_logistic$A.A/(1+((x_seq.STDE/STDE_logistic$C.Xo)^STDE_logistic$B.B))
 
-# Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.STDE <- log(0.5) / beta.0.STDE[[1]]
-Psi_leaf_50.STDE
+Psi_leaf_50.STDE <- STDE_logistic$C.Xo
+#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
 ```
+
 
 ##plot
 ```{r}
@@ -365,29 +512,75 @@ dim(DASP_Kleaf_clean)
 
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+DASP_curve <- DASP_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.DASP<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=DASP_Kleaf_clean)  
-summary(model.0.DASP)
-alpha.0.DASP <- exp(coef(model.0.DASP)[1])
-beta.0.DASP <- coef(model.0.DASP)[2]
+write.csv(x = DASP_curve, file = "result/DASP/DASP_curve.csv") #ready for 
 
-list(alpha = alpha.0.DASP, beta = beta.0.DASP)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+DASP_linear <-  read.csv("result/DASP/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+DASP_logistic <-  read.csv("result/DASP/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+DASP_sigmoidal <-  read.csv("result/DASP/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+DASP_exp <-  read.csv("result/DASP/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+DASP_exp2 <-  read.csv("result/DASP/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(DASP_linear, DASP_logistic, DASP_sigmoidal, DASP_exp, DASP_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+DASP_exp <-  read.csv("result/DASP/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.DASP <- seq(min(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.DASP <-    alpha.0.DASP[[1]]   * exp(beta.0.DASP[[1]]  * x_seq.DASP ) 
+y_model.DASP <- DASP_exp$A.A*exp(-DASP_exp$B.B*x_seq.DASP)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.DASP <- log(0.5) / beta.0.DASP[[1]]
+Psi_leaf_50.DASP <- log(0.5)/(-DASP_exp$B.B)
 Psi_leaf_50.DASP
 ```
 
@@ -439,31 +632,80 @@ dim(CHLA_Kleaf_clean2)
 CHLA_Kleaf_clean <- CHLA_Kleaf_clean2
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+CHLA_curve <- CHLA_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.CHLA<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=CHLA_Kleaf_clean %>% filter (Light != 0))  
-summary(model.0.CHLA)
-alpha.0.CHLA <- exp(coef(model.0.CHLA)[1])
-beta.0.CHLA <- coef(model.0.CHLA)[2]
+write.csv(x = CHLA_curve, file = "result/CHLA/CHLA_curve.csv") #ready for 
 
-list(alpha = alpha.0.CHLA, beta = beta.0.CHLA)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+CHLA_linear <-  read.csv("result/CHLA/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+CHLA_logistic <-  read.csv("result/CHLA/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+CHLA_sigmoidal <-  read.csv("result/CHLA/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+CHLA_exp <-  read.csv("result/CHLA/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+CHLA_exp2 <-  read.csv("result/CHLA/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(CHLA_linear, CHLA_logistic, CHLA_sigmoidal, CHLA_exp, CHLA_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+#best model logistic
+
+CHLA_logistic <-  read.csv("result/CHLA/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.CHLA <- seq(min(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.CHLA <-   alpha.0.CHLA[[1]]   * exp(beta.0.CHLA[[1]]  * x_seq.CHLA ) 
+y_model.CHLA <- CHLA_logistic$A.A/(1+((x_seq.CHLA/CHLA_logistic$C.Xo)^CHLA_logistic$B.B))
 
-# Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.CHLA <- log(0.5) / beta.0.CHLA[[1]]
-Psi_leaf_50.CHLA
+Psi_leaf_50.CHLA <- CHLA_logistic$C.Xo
+#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+
 ```
+
 
 ##plot
 ```{r}
@@ -483,9 +725,9 @@ CHLA.plot <- CHLA_Kleaf_clean %>%
   theme_minimal()+
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
-geom_line(aes(x = x_seq.CHLA, y = y_model.CHLA), color = 'black', size=2, alpha=0.7)
+geom_line(aes(x = x_seq.CHLA, y = y_model.CHLA), color = 'black', size=2, alpha=0.7)+
   #ylim(0,25)
- #  geom_vline(xintercept = Psi_leaf_50.CHLA, linetype = "dashed", color = 'red')
+ geom_vline(xintercept = Psi_leaf_50.CHLA, linetype = "dashed", color = 'red')
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 
 CHLA.plot
@@ -517,31 +759,78 @@ dim(ZEMA_Kleaf_clean)
 
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+ZEMA_curve <- ZEMA_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.ZEMA<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=ZEMA_Kleaf_clean %>% filter (Light != 0))  
-summary(model.0.ZEMA)
-alpha.0.ZEMA <- exp(coef(model.0.ZEMA)[1])
-beta.0.ZEMA <- coef(model.0.ZEMA)[2]
+write.csv(x = ZEMA_curve, file = "result/ZEMA/ZEMA_curve.csv") #ready for 
 
-list(alpha = alpha.0.ZEMA, beta = beta.0.ZEMA)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+ZEMA_linear <-  read.csv("result/ZEMA/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ZEMA_logistic <-  read.csv("result/ZEMA/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ZEMA_sigmoidal <-  read.csv("result/ZEMA/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ZEMA_exp <-  read.csv("result/ZEMA/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ZEMA_exp2 <-  read.csv("result/ZEMA/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(ZEMA_linear, ZEMA_logistic, ZEMA_sigmoidal, ZEMA_exp, ZEMA_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+ZEMA_exp <-  read.csv("result/ZEMA/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.ZEMA <- seq(min(ZEMA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(ZEMA_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(ZEMA_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.ZEMA <-   alpha.0.ZEMA[[1]]   * exp(beta.0.ZEMA[[1]]  * x_seq.ZEMA ) 
+y_model.ZEMA <- ZEMA_exp$A.A*exp(-ZEMA_exp$B.B*x_seq.ZEMA)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.ZEMA <- log(0.5) / beta.0.ZEMA[[1]]
+Psi_leaf_50.ZEMA <- log(0.5)/(-ZEMA_exp$B.B)
 Psi_leaf_50.ZEMA
 ```
+
 
 ##plot
 ```{r}
@@ -587,30 +876,77 @@ dim(NAVI_Kleaf_clean)
 
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+NAVI_curve <- NAVI_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.NAVI<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=NAVI_Kleaf_clean %>% filter (Light != 0))  
-summary(model.0.NAVI)
-alpha.0.NAVI <- exp(coef(model.0.NAVI)[1])
-beta.0.NAVI <- coef(model.0.NAVI)[2]
+write.csv(x = NAVI_curve, file = "result/NAVI/NAVI_curve.csv") #ready for 
 
-list(alpha = alpha.0.NAVI, beta = beta.0.NAVI)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+NAVI_linear <-  read.csv("result/NAVI/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+NAVI_logistic <-  read.csv("result/NAVI/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+NAVI_sigmoidal <-  read.csv("result/NAVI/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+NAVI_exp <-  read.csv("result/NAVI/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+NAVI_exp2 <-  read.csv("result/NAVI/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(NAVI_linear, NAVI_logistic, NAVI_sigmoidal, NAVI_exp, NAVI_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+#best model logistic
+
+NAVI_logistic <-  read.csv("result/NAVI/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.NAVI <- seq(min(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.NAVI <-   alpha.0.NAVI[[1]]   * exp(beta.0.NAVI[[1]]  * x_seq.NAVI ) 
+y_model.NAVI <- NAVI_logistic$A.A/(1+((x_seq.NAVI/NAVI_logistic$C.Xo)^NAVI_logistic$B.B))
 
-# Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.NAVI <- log(0.5) / beta.0.NAVI[[1]]
-Psi_leaf_50.NAVI
+Psi_leaf_50.NAVI <- NAVI_logistic$C.Xo
+#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
 ```
 
 ##plot
@@ -663,31 +999,79 @@ dim(PABI_Kleaf_clean)
 
 ```
 
-##fit model
+##FIT
 ```{r}
-#E(y)=αeβx+θ
-#help from https://rpubs.com/mengxu/exponential-model
-#constant thetha = 0 because data as x increases is 0~, thetha is the stabilizing trend over as x increases.
+#first look for outliers
+#format for fitting for Megan's script
+PABI_curve <- PABI_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
 
-#Prepare fitting a nonlinear model
-# Estimate the rest parameters using a linear model
-model.0.PABI<- lm(log(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) ~ `Lowest Psileaf (Mpa)`, data=PABI_Kleaf_clean)  
-summary(model.0.PABI)
-alpha.0.PABI <- exp(coef(model.0.PABI)[1])
-beta.0.PABI <- coef(model.0.PABI)[2]
+write.csv(x = PABI_curve, file = "result/PABI/PABI_curve.csv") #ready for 
 
-list(alpha = alpha.0.PABI, beta = beta.0.PABI)
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+PABI_linear <-  read.csv("result/PABI/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PABI_logistic <-  read.csv("result/PABI/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PABI_sigmoidal <-  read.csv("result/PABI/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PABI_exp <-  read.csv("result/PABI/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+PABI_exp2 <-  read.csv("result/PABI/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(PABI_linear, PABI_logistic, PABI_sigmoidal, PABI_exp, PABI_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+#best model logistic
+
+PABI_logistic <-  read.csv("result/PABI/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
 x_seq.PABI <- seq(min(PABI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PABI_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(PABI_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-#output model
-y_model.PABI <-   alpha.0.PABI    * exp(beta.0.PABI   * x_seq.PABI ) 
+y_model.PABI <- PABI_logistic$A.A/(1+((x_seq.PABI/PABI_logistic$C.Xo)^PABI_logistic$B.B))
 
-# Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.PABI <- log(0.5) / beta.0.PABI[[1]]
-Psi_leaf_50.PABI
+Psi_leaf_50.PABI <- PABI_logistic$C.Xo
+#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
 ```
+
 
 ##plot
 ```{r}
@@ -714,12 +1098,12 @@ geom_line(aes(x = x_seq.PABI, y = y_model.PABI), color = 'black', size=2, alpha=
 ```{r}
 
 Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, 
-STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, PABI.plot, nrow=3, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula", "(g) P. bisulcatum"), font.label = list(face="bold.italic"), align = "v")
+STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, PABI.plot, nrow=3, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula", "(g) P. bisulcatum"), font.label = list(face="bold.italic"), align = "v", common.legend = T, legend = "bottom")
 
 Kleaf.plots <- annotate_figure(
   Kleaf.plots,
-  bottom = text_grob("Leaf water potential (MPa)", size = 12)
-)
+  bottom = text_grob("Leaf water potential (MPa)", size = 12),
+  left =textGrob(expression("Leaf hydraulic conductance"~(mmol~m^{-2}~s^{-1}~MPa^{-1})), gp = gpar(fontsize = 12), rot = 90)) # Rotate text
 
 Kleaf.plots
 
@@ -851,3 +1235,13 @@ kmax.STDE
 kmax.ZEMA
 
 ```
+
+#Package for fitting
+```{r}
+devtools::install_github("brownegm/hydrafit")
+library(hydrafit)
+
+
+```
+
+  
