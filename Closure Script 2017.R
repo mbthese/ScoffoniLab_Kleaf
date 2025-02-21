@@ -1,5 +1,5 @@
 source("R function MB 2017.R")
-dd = read.csv("result/PABI/PABI_curve.csv",header=TRUE)
+dd = read.csv("result/AVSA/AVSA_curve.csv",header=TRUE)
 
 dd$to_split = paste(dd$species, dd$data.type)
 aggregate(dd, by =list(dd$to_split), FUN=length) -> speciesN
@@ -16,7 +16,7 @@ for (ii in 1:length(species_list)){
 
 # use these kleaf's as inputs to the likelihood function
 #Linear
-pdf(file = 'result/PABI/Linear_fits.pdf', width =8.5, height=5, onefile=T)
+pdf(file = 'result/AVSA/Linear_fits.pdf', width =8.5, height=5, onefile=T)
 #Open a pdf file to save fitted curve plots in
 for (ii in 1:length(species_list)){
   subset(dd, dd$to_split == species_list[ii], select =c(1:5)) -> data_by_sp
@@ -36,7 +36,7 @@ modelfitting_results$psi_kleaf95<- ((0.05-1)*(-modelfitting_results$A.A)/(modelf
 #Every model has different formulas for kleaf50 and kleaf95
 which(is.na(as.numeric(modelfitting_results[,12]))=='TRUE' | is.na(as.numeric(modelfitting_results[,13]))=='TRUE'| is.na(as.numeric(modelfitting_results[,14]))=='TRUE') -> problem_rows
 #Look for curves that returns NAs for the parameter error values
-write.csv(modelfitting_results, file = "result/PABI/Linear_fits.csv")
+write.csv(modelfitting_results, file = "result/AVSA/Linear_fits.csv")
 cat("Linear has ", length(problem_rows), "curve(s) with NAs: ", problem_rows)
 
 
@@ -45,7 +45,7 @@ cat("Linear has ", length(problem_rows), "curve(s) with NAs: ", problem_rows)
 
 #Logistic
 #Declare the pdf file to hold the plots
-pdf(file = 'result/PABI/Logistic_fits.pdf', width =8.5, height=5, onefile=T)
+pdf(file = 'result/AVSA/Logistic_fits.pdf', width =8.5, height=5, onefile=T)
 #Empty the data frame of the previous results
 modelfitting_results[FALSE,] -> modelfitting_results
 for (ii in 1:length(species_list)){
@@ -65,13 +65,13 @@ modelfitting_results$psi_kleaf50<- modelfitting_results$C.Xo*(1/0.5-1)^(1/modelf
 modelfitting_results$psi_kleaf80<- modelfitting_results$C.Xo*(1/0.2-1)^(1/modelfitting_results$B.B)
 modelfitting_results$psi_kleaf95<- modelfitting_results$C.Xo*(1/0.05-1)^(1/modelfitting_results$B.B)
 which(is.na(as.numeric(modelfitting_results[,12]))=='TRUE' | is.na(as.numeric(modelfitting_results[,13]))=='TRUE'| is.na(as.numeric(modelfitting_results[,14]))=='TRUE'| is.na(as.numeric(modelfitting_results[,15]))=='TRUE') -> problem_rows
-write.csv(modelfitting_results, file = "result/PABI/Logistic_fits.csv")
+write.csv(modelfitting_results, file = "result/AVSA/Logistic_fits.csv")
 cat("Logistic has ", length(problem_rows), "curve(s) with NAs: ", problem_rows)
 
 
 #Sigmoidal
 #Declare the pdf file to hold the plots
-pdf(file = 'result/PABI/Sigmoidal_fits.pdf', width =8.5, height=5, onefile=T)
+pdf(file = 'result/AVSA/Sigmoidal_fits.pdf', width =8.5, height=5, onefile=T)
 #Empty the data frame of results
 modelfitting_results[FALSE,] -> modelfitting_results
 for (ii in 1:length(species_list)){
@@ -91,11 +91,11 @@ modelfitting_results$psi_kleaf50<- -modelfitting_results$B.B*(log(1+exp((modelfi
 modelfitting_results$psi_kleaf80<- -modelfitting_results$B.B*(log(1+exp((modelfitting_results$C.Xo/modelfitting_results$B.B)-0.2)/0.2))+modelfitting_results$C.Xo
 modelfitting_results$psi_kleaf95<- -modelfitting_results$B.B*(log(1+exp((modelfitting_results$C.Xo/modelfitting_results$B.B)-0.05)/0.05))+modelfitting_results$C.Xo
 which(is.na(as.numeric(modelfitting_results[,12]))=='TRUE' | is.na(as.numeric(modelfitting_results[,13]))=='TRUE'| is.na(as.numeric(modelfitting_results[,14]))=='TRUE'| is.na(as.numeric(modelfitting_results[,15]))=='TRUE') -> problem_rows
-write.csv(modelfitting_results, file = "result/PABI/Sigmoidal_fits.csv")
+write.csv(modelfitting_results, file = "result/AVSA/Sigmoidal_fits.csv")
 cat("Sigmoidal has ", length(problem_rows), "curve(s) with NAs: ", problem_rows)
 
 #Exponential
-pdf(file = 'result/PABI/Exponential_fits.pdf', width =8.5, height=5, onefile=T)
+pdf(file = 'result/AVSA/Exponential_fits.pdf', width =8.5, height=5, onefile=T)
 modelfitting_results[FALSE,] -> modelfitting_results
 for (ii in 1:length(species_list)){
   subset(dd, dd$to_split == species_list[ii], select =c(1:5)) -> data_by_sp
@@ -116,11 +116,11 @@ modelfitting_results$psi_kleaf50<- log(0.5)/(-modelfitting_results$B.B)
 modelfitting_results$psi_kleaf80<- log(0.2)/(-modelfitting_results$B.B)
 modelfitting_results$psi_kleaf95<- log(0.05)/(-modelfitting_results$B.B)
 which(is.na(as.numeric(modelfitting_results[,12]))=='TRUE' | is.na(as.numeric(modelfitting_results[,13]))=='TRUE'| is.na(as.numeric(modelfitting_results[,14]))=='TRUE') -> problem_rows
-write.csv(modelfitting_results, file = "result/PABI/Exponential_fits.csv")
+write.csv(modelfitting_results, file = "result/AVSA/Exponential_fits.csv")
 cat("Exponential has ", length(problem_rows), "curve(s) with NAs: ", problem_rows)
 
 #Exponential2
-pdf(file = 'result/PABI/Exponential2_fits.pdf', width =8.5, height=5, onefile=T)
+pdf(file = 'result/AVSA/Exponential2_fits.pdf', width =8.5, height=5, onefile=T)
 modelfitting_results[FALSE,] -> modelfitting_results
 for (ii in 1:length(species_list)){
   subset(dd, dd$to_split == species_list[ii], select =c(1:5)) -> data_by_sp
@@ -139,7 +139,7 @@ modelfitting_results$psi_kleaf50<- log(((modelfitting_results$C.C*0.5)+(0.5*mode
 modelfitting_results$psi_kleaf80<- log(((modelfitting_results$C.C*0.2)+(0.2*modelfitting_results$A.A)-modelfitting_results$C.C)/(modelfitting_results$A.A))/(-modelfitting_results$B.B)
 modelfitting_results$psi_kleaf95<- log(((modelfitting_results$C.C*0.05)+(0.05*modelfitting_results$A.A)-modelfitting_results$C.C)/(modelfitting_results$A.A))/(-modelfitting_results$B.B)
 which(is.na(as.numeric(modelfitting_results[,12]))=='TRUE' | is.na(as.numeric(modelfitting_results[,13]))=='TRUE'| is.na(as.numeric(modelfitting_results[,14]))=='TRUE') -> problem_rows
-write.csv(modelfitting_results, file = "result/PABI/Exponential2_fits.csv")
+write.csv(modelfitting_results, file = "result/AVSA/Exponential2_fits.csv")
 cat("Exponential2 has ", length(problem_rows), "curve(s) with NAs: ", problem_rows)
 
 

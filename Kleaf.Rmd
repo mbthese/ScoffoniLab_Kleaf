@@ -105,7 +105,7 @@ CESE_logistic <-  read.csv("result/CESE/Logistic_fits.csv") %>%
 # Create a sequence of x values for the regression line from excel
 x_seq.CESE <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), length.out = length(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`))
 
-y_model.cese <- CESE_logistic$A.A/(1+((x_seq.CESE/CESE_logistic$C.Xo)^CESE_logistic$B.B))
+y_model.CESE<- CESE_logistic$A.A/(1+((x_seq.CESE/CESE_logistic$C.Xo)^CESE_logistic$B.B))
 
 Psi_leaf_50.cese <- CESE_logistic$C.Xo
 #For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
@@ -118,19 +118,19 @@ CESE_Kleaf_clean2$Individual <- as.factor(CESE_Kleaf_clean2$Individual)
 
 CESE.plot <- CESE_Kleaf_clean2 %>%
   ggplot()+
-  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point(color ='gray', size= 3, alpha = 0.7)+
-  labs(
-    x = "Leaf water potential (MPa)",
-     y = bquote(atop("Leaf hydraulic conductance","(mmol"~m^{-2}~s^{-1}~ MPa^{-1}~")"))
-  )+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+  scale_color_manual(values = c('gray', 'red'))+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
   theme_minimal()+
-  theme(axis.title.x = element_blank(), axis.title.y = element_blank())+
-geom_line(aes(x = x_seq.CESE, y = y_model.cese), color = 'black', size=2, alpha=0.7)+
-  theme(
-    plot.margin = margin(t = 10, r = 10, b = 10, l = 20)  # adjust margins
-  )+
- geom_vline(xintercept = Psi_leaf_50.cese, linetype = "dashed", color = 'red')
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.CESE, y = y_model.CESE), color = 'black', size=2, alpha=0.7)+
+  ylim(0,25)+
+   geom_vline(xintercept = Psi_leaf_50.cese, linetype = "dashed", color = 'red')
   
 CESE.plot
 ```
@@ -341,8 +341,8 @@ x_seq.AVSA <- seq(min(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(AVSA_Kleaf_c
 y_model.AVSA <- AVSA_exp$A.A*exp(-AVSA_exp$B.B*x_seq.AVSA)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.avsa <- log(0.5)/(-AVSA_exp$B.B)
-Psi_leaf_50.avsa
+Psi_leaf_50.AVSA <- log(0.5)/(-AVSA_exp$B.B)
+Psi_leaf_50.AVSA
   
 
 ```
@@ -353,8 +353,9 @@ AVSA_Kleaf_clean$Individual <- as.factor(AVSA_Kleaf_clean$Individual)
 
 AVSA.plot <- AVSA_Kleaf_clean %>%
   ggplot()+
-  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+  scale_color_manual(values = c('gray', 'red'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -364,8 +365,7 @@ AVSA.plot <- AVSA_Kleaf_clean %>%
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.AVSA, y = y_model.AVSA), color = 'black', size=2, alpha=0.7)+
   ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.avsa, linetype = "dashed", color = 'red')
-   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+   geom_vline(xintercept = Psi_leaf_50.AVSA, linetype = "dashed", color = 'red')
 ```
 
 #STDE
@@ -590,8 +590,9 @@ DASP_Kleaf_clean$Individual <- as.factor(DASP_Kleaf_clean$Individual)
 
 DASP.plot <- DASP_Kleaf_clean %>%
   ggplot()+
-  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+  scale_color_manual(values = c('gray', 'red'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -602,7 +603,6 @@ DASP.plot <- DASP_Kleaf_clean %>%
 geom_line(aes(x = x_seq.DASP, y = y_model.DASP), color = 'black', size=2, alpha=0.7)+
   ylim(0,25)+
    geom_vline(xintercept = Psi_leaf_50.DASP, linetype = "dashed", color = 'red')
-   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 ```
 
 #CHLA
@@ -1079,8 +1079,9 @@ PABI_Kleaf_clean$Individual <- as.factor(PABI_Kleaf_clean$Individual)
 
 PABI.plot <- PABI_Kleaf_clean %>%
   ggplot()+
-  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+  scale_color_manual(values = c('gray', 'red'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -1092,17 +1093,264 @@ geom_line(aes(x = x_seq.PABI, y = y_model.PABI), color = 'black', size=2, alpha=
   ylim(0,25)+
    geom_vline(xintercept = Psi_leaf_50.PABI, linetype = "dashed", color = 'red')
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+ 
+```
+
+
+#ECCG
+Echinochloa crus-galli
+
+```{r}
+
+ECCG_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "ECCG")
+
+```
+
+##Clean
+```{r}
+dim(ECCG_Kleaf)
+#[1] 22 31
+ ECCG_Kleaf_clean <- ECCG_Kleaf %>% 
+  filter(Specie == "ECCG") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>%
+   filter(`Psileaf_fin (Mpa)` != 0.765)
+dim(ECCG_Kleaf_clean)
+
+```
+
+##FIT
+```{r}
+#first look for outliers
+#format for fitting for Megan's script
+ECCG_curve <- ECCG_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
+
+write.csv(x = ECCG_curve, file = "result/ECCG/ECCG_curve.csv") #ready for 
+
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+ECCG_linear <-  read.csv("result/ECCG/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ECCG_logistic <-  read.csv("result/ECCG/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ECCG_sigmoidal <-  read.csv("result/ECCG/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ECCG_exp <-  read.csv("result/ECCG/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+ECCG_exp2 <-  read.csv("result/ECCG/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(ECCG_linear, ECCG_logistic, ECCG_sigmoidal, ECCG_exp, ECCG_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+#best model exp
+
+ECCG_exp  <- read.csv("result/ECCG/Exponential_fits.csv")  %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
+
+# Create a sequence of x values for the regression line from excel
+x_seq.ECCG <- seq(min(ECCG_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(ECCG_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(ECCG_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+y_model.ECCG <- ECCG_exp$A.A*exp(-ECCG_exp$B.B*x_seq.ECCG)
+
+# Calculate Ψleaf at 50% loss of Kleaf
+Psi_leaf_50.ECCG <- log(0.5)/(-ECCG_exp$B.B)
+Psi_leaf_50.ECCG
+```
+
+##plot
+```{r}
+ECCG_Kleaf_clean$Individual <- as.factor(ECCG_Kleaf_clean$Individual)
+ECCG_Kleaf_clean$Light <- as.factor(ECCG_Kleaf_clean$Light)
+
+ECCG.plot <- ECCG_Kleaf_clean %>%
+ #filter(Date == "11272024") %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+   scale_color_manual(values = c('gray', 'red'))+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+#geom_line(aes(x = x_seq.ECCG, y = y_model.ECCG), color = 'black', size=2, alpha=0.7)+
+  #ylim(0,25)
+   geom_vline(xintercept = Psi_leaf_50.ECCG, linetype = "dashed", color = 'red')
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+
+ECCG.plot
+```
+
+
+
+#SEIT
+
+```{r}
+
+SEIT_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "SEIT")
+
+```
+
+##Clean
+```{r}
+dim(SEIT_Kleaf)
+#[1] 21 31
+ SEIT_Kleaf_clean <- SEIT_Kleaf %>% 
+  filter(Specie == "SEIT") %>%
+   drop_na(`Psileaf_fin (Mpa)`) %>%
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)%>%
+   filter(`Lowest Psileaf (Mpa)` != 0.090)
+dim(SEIT_Kleaf_clean)
+#[1] 20 31
+
+
+
+```
+
+##FIT
+```{r}
+#first look for outliers
+#format for fitting for Megan's script
+SEIT_curve <- SEIT_Kleaf_clean %>%
+  filter(Light == ">1000") %>%
+  dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
+  rename(psi = `Lowest Psileaf (Mpa)`) %>%
+  rename(gs = `Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>% #for the script by Megan
+  rename(species = Specie) %>%
+  mutate(`data type` = 1) %>%
+  relocate(`data type` , .after = species )
+
+write.csv(x = SEIT_curve, file = "result/SEIT/SEIT_curve.csv") #ready for 
+
+#after fitting curve with "Closure Script 2017" and "R function MB 2017"
+
+SEIT_linear <-  read.csv("result/SEIT/Linear_fits.csv") %>%
+  mutate(`function` = "linear") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+SEIT_logistic <-  read.csv("result/SEIT/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+SEIT_sigmoidal <-  read.csv("result/SEIT/Sigmoidal_fits.csv") %>%
+  mutate(`function` = "sigmoidal") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+SEIT_exp <-  read.csv("result/SEIT/Exponential_fits.csv") %>%
+  mutate(`function` = "exp") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+SEIT_exp2 <-  read.csv("result/SEIT/Exponential2_fits.csv") %>%
+  mutate(`function` = "exp2") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) %>%
+  dplyr::select(`function`, species, rsq, AICcorr)
+
+choose_model <- rbind(SEIT_linear, SEIT_logistic, SEIT_sigmoidal, SEIT_exp, SEIT_exp2)
+choose_model 
+#best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
+
+#best model logistic
+
+SEIT_logistic <-  read.csv("result/SEIT/Logistic_fits.csv") %>%
+  mutate(`function` = "logistic") %>%
+  relocate(`function`, .before = Species) %>%
+  dplyr::select(-X) %>%
+  rename(species= data.type, Data.type = Species) 
+
+# Create a sequence of x values for the regression line from excel
+x_seq.SEIT <- seq(min(SEIT_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(SEIT_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(SEIT_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+
+y_model.SEIT <- SEIT_logistic$A.A/(1+((x_seq.SEIT/SEIT_logistic$C.Xo)^SEIT_logistic$B.B))
+
+Psi_leaf_50.SEIT <- SEIT_logistic$C.Xo
+#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+```
+
+
+##plot
+```{r}
+SEIT_Kleaf_clean$Individual <- as.factor(SEIT_Kleaf_clean$Individual)
+
+SEIT.plot <- SEIT_Kleaf_clean %>%
+  ggplot()+
+  aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
+  geom_point(size= 3, alpha = 0.7)+
+  scale_color_manual(values = c('gray', 'red'))+
+  #labs(
+   # x = "Leaf water potential (MPa)",
+    #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
+  #)+
+  theme_minimal()+
+  theme(axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
+geom_line(aes(x = x_seq.SEIT, y = y_model.SEIT), color = 'black', size=2, alpha=0.7)+
+  ylim(0,25)+
+   geom_vline(xintercept = Psi_leaf_50.SEIT, linetype = "dashed", color = 'red')
+   #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+ 
 ```
 
 #all plots
 ```{r}
 
 Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, 
-STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, PABI.plot, nrow=3, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula", "(g) P. bisulcatum"), font.label = list(face="bold.italic"), align = "v", common.legend = T, legend = "bottom")
+STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, PABI.plot, ECCG.plot, SEIT.plot, nrow=4, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula", "(i) P. bisulcatum", "(j) E. crus-galli", "(k) S. italica"), font.label = list(face="bold.italic"), align = "v", common.legend = T, legend = "bottom")
 
 Kleaf.plots <- annotate_figure(
   Kleaf.plots,
-  bottom = text_grob("Leaf water potential (MPa)", size = 12),
+  bottom = text_grob("Leaf water potential (-MPa)", size = 12),
   left =textGrob(expression("Leaf hydraulic conductance"~(mmol~m^{-2}~s^{-1}~MPa^{-1})), gp = gpar(fontsize = 12), rot = 90)) # Rotate text
 
 Kleaf.plots
