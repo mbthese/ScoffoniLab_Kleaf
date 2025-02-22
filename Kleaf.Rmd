@@ -22,7 +22,7 @@ library(grid) # For textGrob ggarrange plots details
 ##Data
 ```{r}
 
-CESE_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "CESE")
+CESE_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "CESE")
 
 ```
 
@@ -107,8 +107,14 @@ x_seq.CESE <- seq(min(CESE_Kleaf_clean2$`Lowest Psileaf (Mpa)`), max(CESE_Kleaf_
 
 y_model.CESE<- CESE_logistic$A.A/(1+((x_seq.CESE/CESE_logistic$C.Xo)^CESE_logistic$B.B))
 
-Psi_leaf_50.cese <- CESE_logistic$C.Xo
-#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+#Curve-derived parameters
+
+psi_kleaf20.cese<- CESE_logistic$C.Xo*(1/0.8-1)^(1/CESE_logistic$B.B)
+psi_kleaf50.cese<- CESE_logistic$C.Xo*(1/0.5-1)^(1/CESE_logistic$B.B)#basically only C.Xo but should be the inflection point of th ecurve?
+psi_kleaf80.cese<- CESE_logistic$C.Xo*(1/0.2-1)^(1/CESE_logistic$B.B)
+psi_kleaf95.cese<- CESE_logistic$C.Xo*(1/0.05-1)^(1/CESE_logistic$B.B)
+Kmax.cese<- CESE_logistic$A.A
+
 ```
 
 ##Plot
@@ -120,7 +126,7 @@ CESE.plot <- CESE_Kleaf_clean2 %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-  scale_color_manual(values = c('gray', 'red'))+
+  scale_color_manual(values = c('orange', 'gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -129,8 +135,10 @@ CESE.plot <- CESE_Kleaf_clean2 %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.CESE, y = y_model.CESE), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.cese, linetype = "dashed", color = 'red')
+  #ylim(0,25)+
+   geom_vline(xintercept = psi_kleaf50.cese, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.cese), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
+  
   
 CESE.plot
 ```
@@ -141,7 +149,7 @@ probably the point at Kleaf = 60 is too high
 #PADI
 ```{r}
 
-PADI_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "PADI")
+PADI_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "PADI")
 
 ```
 
@@ -227,8 +235,13 @@ x_seq.PADI <- seq(min(PADI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PADI_Kleaf_c
 y_model.PADI <- PADI_exp$A.A*exp(-PADI_exp$B.B*x_seq.PADI)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.padi <- log(0.5)/(-PADI_exp$B.B)
-Psi_leaf_50.padi
+psi_kleaf50.PADI <- log(0.5)/(-PADI_exp$B.B)
+
+Kmax.PADI<-PADI_exp$A.A
+psi_kleaf20.PADI<- log(0.8)/(-PADI_exp$B.B)
+psi_kleaf80.PADI<- log(0.2)/(-PADI_exp$B.B)
+psi_kleaf95.PADI<- log(0.05)/(-PADI_exp$B.B)
+
 ```
 
 ##plot
@@ -237,7 +250,7 @@ PADI_Kleaf_clean$Individual <- as.factor(PADI_Kleaf_clean$Individual)
 PADI.plot <-PADI_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Individual)+
-  geom_point(color ='gray', size= 3, alpha = 0.7)+
+  geom_point(color ='orange', size= 3, alpha = 0.7)+
   labs(
     x = "Leaf water potential (MPa)",
     y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -246,7 +259,8 @@ PADI.plot <-PADI_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.PADI, y = y_model.PADI), color = 'black', size=2, alpha=0.7)+
-geom_vline(xintercept = Psi_leaf_50.padi, linetype ="dashed", color = 'red')
+geom_vline(xintercept = psi_kleaf50.PADI, linetype ="dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.PADI), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
 #+
  #  annotate(geom='text',x=0.5,y=30,label="y = 86.05 * exp(-9.6 x)",fontface='bold', size=6)
 PADI.plot
@@ -257,7 +271,7 @@ PADI.plot
 
 ```{r}
 
-AVSA_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "AVSA")
+AVSA_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "AVSA")
 
 ```
 
@@ -341,8 +355,11 @@ x_seq.AVSA <- seq(min(AVSA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(AVSA_Kleaf_c
 y_model.AVSA <- AVSA_exp$A.A*exp(-AVSA_exp$B.B*x_seq.AVSA)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.AVSA <- log(0.5)/(-AVSA_exp$B.B)
-Psi_leaf_50.AVSA
+Kmax.AVSA<-AVSA_exp$A.A
+psi_kleaf20.AVSA<- log(0.8)/(-AVSA_exp$B.B)
+psi_kleaf50.AVSA <- log(0.5)/(-AVSA_exp$B.B)
+psi_kleaf80.AVSA<- log(0.2)/(-AVSA_exp$B.B)
+psi_kleaf95.AVSA<- log(0.05)/(-AVSA_exp$B.B)
   
 
 ```
@@ -355,7 +372,7 @@ AVSA.plot <- AVSA_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-  scale_color_manual(values = c('gray', 'red'))+
+  scale_color_manual(values = c('orange', 'gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -364,15 +381,17 @@ AVSA.plot <- AVSA_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.AVSA, y = y_model.AVSA), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.AVSA, linetype = "dashed", color = 'red')
+ # ylim(0,25)+
+   geom_vline(xintercept = psi_kleaf50.AVSA, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.AVSA), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
+AVSA.plot 
 ```
 
 #STDE
 steinchisma decipiens
 ```{r}
 
-STDE_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "STDE")
+STDE_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "STDE")
 
 ```
 
@@ -386,7 +405,7 @@ dim(STDE_Kleaf)
    drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
 dim(STDE_Kleaf_clean)
 
-
+STDE_Kleaf$E
 
 
 ```
@@ -460,8 +479,13 @@ x_seq.STDE <- seq(min(STDE_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(STDE_Kleaf_c
 
 y_model.STDE <- STDE_logistic$A.A/(1+((x_seq.STDE/STDE_logistic$C.Xo)^STDE_logistic$B.B))
 
-Psi_leaf_50.STDE <- STDE_logistic$C.Xo
-#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+#Curve-derived parameters
+
+psi_kleaf20.STDE<- STDE_logistic$C.Xo*(1/0.8-1)^(1/STDE_logistic$B.B)
+psi_kleaf50.STDE<- STDE_logistic$C.Xo*(1/0.5-1)^(1/STDE_logistic$B.B)#basically only C.Xo but should be the inflection point of th ecurve?
+psi_kleaf80.STDE<- STDE_logistic$C.Xo*(1/0.2-1)^(1/STDE_logistic$B.B)
+psi_kleaf95.STDE<- STDE_logistic$C.Xo*(1/0.05-1)^(1/STDE_logistic$B.B)
+Kmax.STDE<- STDE_logistic$A.A
 ```
 
 
@@ -473,7 +497,7 @@ STDE.plot <- STDE_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-   scale_color_manual(values = c('gray', 'red'))+
+   scale_color_manual(values = c('orange', 'gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -483,7 +507,8 @@ STDE.plot <- STDE_Kleaf_clean %>%
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.STDE, y = y_model.STDE), color = 'black', size=2, alpha=0.7)+
   #ylim(0,25)
-   geom_vline(xintercept = Psi_leaf_50.STDE, linetype = "dashed", color = 'red')
+   geom_vline(xintercept =psi_kleaf50.STDE, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.STDE), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 
 STDE.plot
@@ -493,7 +518,7 @@ STDE.plot
 
 ```{r}
 
-DASP_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "DASP")
+DASP_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "DASP")
 
 ```
 
@@ -580,8 +605,12 @@ x_seq.DASP <- seq(min(DASP_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(DASP_Kleaf_c
 y_model.DASP <- DASP_exp$A.A*exp(-DASP_exp$B.B*x_seq.DASP)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.DASP <- log(0.5)/(-DASP_exp$B.B)
-Psi_leaf_50.DASP
+
+Kmax.DASP<-DASP_exp$A.A
+psi_kleaf20.DASP<- log(0.8)/(-DASP_exp$B.B)
+psi_kleaf50.DASP <- log(0.5)/(-DASP_exp$B.B)
+psi_kleaf80.DASP<- log(0.2)/(-DASP_exp$B.B)
+psi_kleaf95.DASP<- log(0.05)/(-DASP_exp$B.B)
 ```
 
 ##plot
@@ -592,7 +621,7 @@ DASP.plot <- DASP_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-  scale_color_manual(values = c('gray', 'red'))+
+  scale_color_manual(values = c('orange', 'gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -601,15 +630,17 @@ DASP.plot <- DASP_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.DASP, y = y_model.DASP), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.DASP, linetype = "dashed", color = 'red')
+  #ylim(0,25)+
+   geom_vline(xintercept = psi_kleaf50.DASP, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.DASP), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
+DASP.plot
 ```
 
 #CHLA
 Chasmanthium latifolium
 ```{r}
 
-CHLA_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "CHLA")
+CHLA_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "CHLA")
 
 ```
 
@@ -701,8 +732,13 @@ x_seq.CHLA <- seq(min(CHLA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(CHLA_Kleaf_c
 
 y_model.CHLA <- CHLA_logistic$A.A/(1+((x_seq.CHLA/CHLA_logistic$C.Xo)^CHLA_logistic$B.B))
 
-Psi_leaf_50.CHLA <- CHLA_logistic$C.Xo
-#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+#Curve-derived parameters
+
+psi_kleaf20.CHLA<- CHLA_logistic$C.Xo*(1/0.8-1)^(1/CHLA_logistic$B.B)
+psi_kleaf50.CHLA<- CHLA_logistic$C.Xo*(1/0.5-1)^(1/CHLA_logistic$B.B)#basically only C.Xo but should be the inflection point of th ecurve?
+psi_kleaf80.CHLA<- CHLA_logistic$C.Xo*(1/0.2-1)^(1/CHLA_logistic$B.B)
+psi_kleaf95.CHLA<- CHLA_logistic$C.Xo*(1/0.05-1)^(1/CHLA_logistic$B.B)
+Kmax.CHLA<- CHLA_logistic$A.A
 
 ```
 
@@ -717,7 +753,7 @@ CHLA.plot <- CHLA_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-   scale_color_manual(values = c('gray', 'red'))+
+   scale_color_manual(values = c('orange', 'gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -727,7 +763,8 @@ CHLA.plot <- CHLA_Kleaf_clean %>%
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.CHLA, y = y_model.CHLA), color = 'black', size=2, alpha=0.7)+
   #ylim(0,25)
- geom_vline(xintercept = Psi_leaf_50.CHLA, linetype = "dashed", color = 'red')
+ geom_vline(xintercept = psi_kleaf50.CHLA, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.CHLA), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 
 CHLA.plot
@@ -737,7 +774,7 @@ CHLA.plot
 
 ```{r}
 
-ZEMA_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "ZEMA")
+ZEMA_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "ZEMA")
 ```
 
 
@@ -827,8 +864,11 @@ x_seq.ZEMA <- seq(min(ZEMA_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(ZEMA_Kleaf_c
 y_model.ZEMA <- ZEMA_exp$A.A*exp(-ZEMA_exp$B.B*x_seq.ZEMA)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.ZEMA <- log(0.5)/(-ZEMA_exp$B.B)
-Psi_leaf_50.ZEMA
+Kmax.ZEMA<-ZEMA_exp$A.A
+psi_kleaf20.ZEMA<- log(0.8)/(-ZEMA_exp$B.B)
+psi_kleaf50.ZEMA <- log(0.5)/(-ZEMA_exp$B.B)
+psi_kleaf80.ZEMA<- log(0.2)/(-ZEMA_exp$B.B)
+psi_kleaf95.ZEMA<- log(0.05)/(-ZEMA_exp$B.B)
 ```
 
 
@@ -841,7 +881,7 @@ ZEMA.plot <- ZEMA_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-  scale_color_manual(values = c('gray', 'red'))+
+  scale_color_manual(values = c('orange','gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -850,8 +890,9 @@ ZEMA.plot <- ZEMA_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.ZEMA, y = y_model.ZEMA), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.ZEMA, linetype = "dashed", color = 'red')
+  #ylim(0,25)+
+   geom_vline(xintercept = psi_kleaf50.ZEMA, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.ZEMA), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 ZEMA.plot
 ```
@@ -860,7 +901,7 @@ ZEMA.plot
 Nassella/Stipa viridula
 ```{r}
 
-NAVI_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "NAVI")
+NAVI_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "NAVI")
 
 ```
 
@@ -945,8 +986,14 @@ x_seq.NAVI <- seq(min(NAVI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(NAVI_Kleaf_c
 
 y_model.NAVI <- NAVI_logistic$A.A/(1+((x_seq.NAVI/NAVI_logistic$C.Xo)^NAVI_logistic$B.B))
 
-Psi_leaf_50.NAVI <- NAVI_logistic$C.Xo
-#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+#Curve-derived parameters
+
+psi_kleaf20.NAVI<- NAVI_logistic$C.Xo*(1/0.8-1)^(1/NAVI_logistic$B.B)
+psi_kleaf50.NAVI<- NAVI_logistic$C.Xo*(1/0.5-1)^(1/NAVI_logistic$B.B)#basically only C.Xo but should be the inflection point of th ecurve?
+psi_kleaf80.NAVI<- NAVI_logistic$C.Xo*(1/0.2-1)^(1/NAVI_logistic$B.B)
+psi_kleaf95.NAVI<- NAVI_logistic$C.Xo*(1/0.05-1)^(1/NAVI_logistic$B.B)
+Kmax.NAVI<- NAVI_logistic$A.A
+
 ```
 
 ##plot
@@ -959,7 +1006,7 @@ NAVI.plot <- NAVI_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-   scale_color_manual(values = c('gray', 'red'))+
+   scale_color_manual(values = c('orange','gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -969,7 +1016,8 @@ NAVI.plot <- NAVI_Kleaf_clean %>%
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.NAVI, y = y_model.NAVI), color = 'black', size=2, alpha=0.7)+
   #ylim(0,25)
-   geom_vline(xintercept = Psi_leaf_50.NAVI, linetype = "dashed", color = 'red')
+   geom_vline(xintercept = psi_kleaf50.NAVI, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.NAVI), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 
 NAVI.plot
@@ -980,7 +1028,7 @@ NAVI.plot
 
 ```{r}
 
-PABI_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "PABI")
+PABI_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "PABI")
 
 ```
 
@@ -1068,8 +1116,13 @@ x_seq.PABI <- seq(min(PABI_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(PABI_Kleaf_c
 
 y_model.PABI <- PABI_logistic$A.A/(1+((x_seq.PABI/PABI_logistic$C.Xo)^PABI_logistic$B.B))
 
-Psi_leaf_50.PABI <- PABI_logistic$C.Xo
-#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+#Curve-derived parameters
+
+psi_kleaf20.PABI<- PABI_logistic$C.Xo*(1/0.8-1)^(1/PABI_logistic$B.B)
+psi_kleaf50.PABI<- PABI_logistic$C.Xo*(1/0.5-1)^(1/PABI_logistic$B.B)#basically only C.Xo but should be the inflection point of th ecurve?
+psi_kleaf80.PABI<- PABI_logistic$C.Xo*(1/0.2-1)^(1/PABI_logistic$B.B)
+psi_kleaf95.PABI<- PABI_logistic$C.Xo*(1/0.05-1)^(1/PABI_logistic$B.B)
+Kmax.PABI<- PABI_logistic$A.A
 ```
 
 
@@ -1081,7 +1134,7 @@ PABI.plot <- PABI_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-  scale_color_manual(values = c('gray', 'red'))+
+  scale_color_manual(values = c('orange','gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -1090,32 +1143,34 @@ PABI.plot <- PABI_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.PABI, y = y_model.PABI), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.PABI, linetype = "dashed", color = 'red')
+  #ylim(0,25)+
+   geom_vline(xintercept = psi_kleaf50.PABI, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.PABI), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
+PABI.plot
  
 ```
 
 
-#ECCG
+#ECCR
 Echinochloa crus-galli
 
 ```{r}
 
-ECCG_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "ECCG")
+ECCR_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "ECCR")
 
 ```
 
 ##Clean
 ```{r}
-dim(ECCG_Kleaf)
+dim(ECCR_Kleaf)
 #[1] 22 31
- ECCG_Kleaf_clean <- ECCG_Kleaf %>% 
-  filter(Specie == "ECCG") %>%
+ ECCR_Kleaf_clean <- ECCR_Kleaf %>% 
+  filter(Specie == "ECCR") %>%
    drop_na(`Psileaf_fin (Mpa)`) %>%
-   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`) %>%
-   filter(`Psileaf_fin (Mpa)` != 0.765)
-dim(ECCG_Kleaf_clean)
+   drop_na(`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`)
+  # filter(`Psileaf_fin (Mpa)` != 0.765)
+dim(ECCR_Kleaf_clean)
 
 ```
 
@@ -1123,7 +1178,7 @@ dim(ECCG_Kleaf_clean)
 ```{r}
 #first look for outliers
 #format for fitting for Megan's script
-ECCG_curve <- ECCG_Kleaf_clean %>%
+ECCR_curve <- ECCR_Kleaf_clean %>%
   filter(Light == ">1000") %>%
   dplyr::select(Specie, `Lowest Psileaf (Mpa)`, `Kleaf Tcorr (mmol m-2 s-1 MPa-1)` ) %>%
   rename(psi = `Lowest Psileaf (Mpa)`) %>%
@@ -1132,78 +1187,82 @@ ECCG_curve <- ECCG_Kleaf_clean %>%
   mutate(`data type` = 1) %>%
   relocate(`data type` , .after = species )
 
-write.csv(x = ECCG_curve, file = "result/ECCG/ECCG_curve.csv") #ready for 
+write.csv(x = ECCR_curve, file = "result/ECCR/ECCR_curve.csv") #ready for 
 
 #after fitting curve with "Closure Script 2017" and "R function MB 2017"
 
-ECCG_linear <-  read.csv("result/ECCG/Linear_fits.csv") %>%
+ECCR_linear <-  read.csv("result/ECCR/Linear_fits.csv") %>%
   mutate(`function` = "linear") %>%
   relocate(`function`, .before = Species) %>%
   dplyr::select(-X) %>%
   rename(species= data.type, Data.type = Species) %>%
   dplyr::select(`function`, species, rsq, AICcorr)
 
-ECCG_logistic <-  read.csv("result/ECCG/Logistic_fits.csv") %>%
+ECCR_logistic <-  read.csv("result/ECCR/Logistic_fits.csv") %>%
   mutate(`function` = "logistic") %>%
   relocate(`function`, .before = Species) %>%
   dplyr::select(-X) %>%
   rename(species= data.type, Data.type = Species) %>%
   dplyr::select(`function`, species, rsq, AICcorr)
 
-ECCG_sigmoidal <-  read.csv("result/ECCG/Sigmoidal_fits.csv") %>%
+ECCR_sigmoidal <-  read.csv("result/ECCR/Sigmoidal_fits.csv") %>%
   mutate(`function` = "sigmoidal") %>%
   relocate(`function`, .before = Species) %>%
   dplyr::select(-X) %>%
   rename(species= data.type, Data.type = Species) %>%
   dplyr::select(`function`, species, rsq, AICcorr)
 
-ECCG_exp <-  read.csv("result/ECCG/Exponential_fits.csv") %>%
+ECCR_exp <-  read.csv("result/ECCR/Exponential_fits.csv") %>%
   mutate(`function` = "exp") %>%
   relocate(`function`, .before = Species) %>%
   dplyr::select(-X) %>%
   rename(species= data.type, Data.type = Species) %>%
   dplyr::select(`function`, species, rsq, AICcorr)
 
-ECCG_exp2 <-  read.csv("result/ECCG/Exponential2_fits.csv") %>%
+ECCR_exp2 <-  read.csv("result/ECCR/Exponential2_fits.csv") %>%
   mutate(`function` = "exp2") %>%
   relocate(`function`, .before = Species) %>%
   dplyr::select(-X) %>%
   rename(species= data.type, Data.type = Species) %>%
   dplyr::select(`function`, species, rsq, AICcorr)
 
-choose_model <- rbind(ECCG_linear, ECCG_logistic, ECCG_sigmoidal, ECCG_exp, ECCG_exp2)
+choose_model <- rbind(ECCR_linear, ECCR_logistic, ECCR_sigmoidal, ECCR_exp, ECCR_exp2)
 choose_model 
 #best model is the one with the lowest AIC. if models have AIC within 2 points, then we cannot distinguish them. so we look at the highest R2. 
 
 #best model exp
 
-ECCG_exp  <- read.csv("result/ECCG/Exponential_fits.csv")  %>%
+ECCR_exp  <- read.csv("result/ECCR/Exponential_fits.csv")  %>%
   mutate(`function` = "exp") %>%
   relocate(`function`, .before = Species) %>%
   dplyr::select(-X) %>%
   rename(species= data.type, Data.type = Species) 
 
 # Create a sequence of x values for the regression line from excel
-x_seq.ECCG <- seq(min(ECCG_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(ECCG_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(ECCG_Kleaf_clean$`Lowest Psileaf (Mpa)`))
+x_seq.ECCR <- seq(min(ECCR_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(ECCR_Kleaf_clean$`Lowest Psileaf (Mpa)`), length.out = length(ECCR_Kleaf_clean$`Lowest Psileaf (Mpa)`))
 
-y_model.ECCG <- ECCG_exp$A.A*exp(-ECCG_exp$B.B*x_seq.ECCG)
+y_model.ECCR <- ECCR_exp$A.A*exp(-ECCR_exp$B.B*x_seq.ECCR)
 
 # Calculate Ψleaf at 50% loss of Kleaf
-Psi_leaf_50.ECCG <- log(0.5)/(-ECCG_exp$B.B)
-Psi_leaf_50.ECCG
+
+Kmax.ECCR<-ECCR_exp$A.A
+psi_kleaf20.ECCR<- log(0.8)/(-ECCR_exp$B.B)
+psi_kleaf50.ECCR <- log(0.5)/(-ECCR_exp$B.B)
+psi_kleaf80.ECCR<- log(0.2)/(-ECCR_exp$B.B)
+psi_kleaf95.ECCR<- log(0.05)/(-ECCR_exp$B.B)
 ```
 
 ##plot
 ```{r}
-ECCG_Kleaf_clean$Individual <- as.factor(ECCG_Kleaf_clean$Individual)
-ECCG_Kleaf_clean$Light <- as.factor(ECCG_Kleaf_clean$Light)
+ECCR_Kleaf_clean$Individual <- as.factor(ECCR_Kleaf_clean$Individual)
+ECCR_Kleaf_clean$Light <- as.factor(ECCR_Kleaf_clean$Light)
 
-ECCG.plot <- ECCG_Kleaf_clean %>%
+ECCR.plot <- ECCR_Kleaf_clean %>%
  #filter(Date == "11272024") %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-   scale_color_manual(values = c('gray', 'red'))+
+   scale_color_manual(values = c('orange','gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -1211,12 +1270,13 @@ ECCG.plot <- ECCG_Kleaf_clean %>%
   theme_minimal()+
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
-#geom_line(aes(x = x_seq.ECCG, y = y_model.ECCG), color = 'black', size=2, alpha=0.7)+
+geom_line(aes(x = x_seq.ECCR, y = y_model.ECCR), color = 'black', size=2, alpha=0.7)+
   #ylim(0,25)
-   geom_vline(xintercept = Psi_leaf_50.ECCG, linetype = "dashed", color = 'red')
+  geom_vline(xintercept = psi_kleaf50.ECCR, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.ECCR), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
 
-ECCG.plot
+ECCR.plot
 ```
 
 
@@ -1225,7 +1285,7 @@ ECCG.plot
 
 ```{r}
 
-SEIT_Kleaf <-  read_excel("data/Kleaf_Karli_Marion_CESE.xlsx", sheet = "SEIT")
+SEIT_Kleaf <-  read_excel("data/Kleaf_data.xlsx", sheet = "SEIT")
 
 ```
 
@@ -1314,8 +1374,14 @@ x_seq.SEIT <- seq(min(SEIT_Kleaf_clean$`Lowest Psileaf (Mpa)`), max(SEIT_Kleaf_c
 
 y_model.SEIT <- SEIT_logistic$A.A/(1+((x_seq.SEIT/SEIT_logistic$C.Xo)^SEIT_logistic$B.B))
 
-Psi_leaf_50.SEIT <- SEIT_logistic$C.Xo
-#For a logistic function, P50₀ is simply the inflection point of the curve, so C.X0
+#Curve-derived parameters
+
+psi_kleaf20.SEIT<- SEIT_logistic$C.Xo*(1/0.8-1)^(1/SEIT_logistic$B.B)
+psi_kleaf50.SEIT<- SEIT_logistic$C.Xo*(1/0.5-1)^(1/SEIT_logistic$B.B)#basically only C.Xo but should be the inflection point of th ecurve?
+psi_kleaf80.SEIT<- SEIT_logistic$C.Xo*(1/0.2-1)^(1/SEIT_logistic$B.B)
+psi_kleaf95.SEIT<- SEIT_logistic$C.Xo*(1/0.05-1)^(1/SEIT_logistic$B.B)
+Kmax.SEIT<- SEIT_logistic$A.A
+
 ```
 
 
@@ -1327,7 +1393,7 @@ SEIT.plot <- SEIT_Kleaf_clean %>%
   ggplot()+
   aes(x=`Lowest Psileaf (Mpa)`, y=`Kleaf Tcorr (mmol m-2 s-1 MPa-1)`, color=Light)+
   geom_point(size= 3, alpha = 0.7)+
-  scale_color_manual(values = c('gray', 'red'))+
+  scale_color_manual(values = c('orange', 'gray'))+
   #labs(
    # x = "Leaf water potential (MPa)",
     #y = "Leaf hydraulic conductance (mmol m-2 s-1 MPa-1)"
@@ -1336,17 +1402,18 @@ SEIT.plot <- SEIT_Kleaf_clean %>%
   theme(axis.title.x = element_blank())+
   theme(axis.title.y = element_blank())+
 geom_line(aes(x = x_seq.SEIT, y = y_model.SEIT), color = 'black', size=2, alpha=0.7)+
-  ylim(0,25)+
-   geom_vline(xintercept = Psi_leaf_50.SEIT, linetype = "dashed", color = 'red')
+  #ylim(0,25)+
+   geom_vline(xintercept = psi_kleaf50.SEIT, linetype = "dashed", color = 'orange')+
+  geom_point(aes(x = 0, y = Kmax.SEIT), color = "blue", size = 4) #Zailaa et al. 2024 "The blue extrapolated point in each panel represents the Kmax or gmax values at −0.1 MPa"
    #annotate(geom='text',x=0.5,y=30,label="y = 37.95 * exp(-3.57 x)",fontface='bold', size=6)
- 
+SEIT.plot 
 ```
 
 #all plots
 ```{r}
 
 Kleaf.plots <- ggarrange(CESE.plot, PADI.plot, AVSA.plot, 
-STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, PABI.plot, ECCG.plot, SEIT.plot, nrow=4, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula", "(i) P. bisulcatum", "(j) E. crus-galli", "(k) S. italica"), font.label = list(face="bold.italic"), align = "v", common.legend = T, legend = "bottom")
+STDE.plot, DASP.plot, CHLA.plot, ZEMA.plot, NAVI.plot, PABI.plot, ECCR.plot, SEIT.plot, nrow=4, ncol=3, labels = c("(a) C. setaceus", "(b) P. dilatatum", "(c) A. sativa", "(d) S. decipiens", "(e) D. spicata", "(f) C. latifolium", "(g) Z. mays ", "(h) N. viridula", "(i) P. bisulcatum", "(j) E. crus-galli", "(k) S. italica"), font.label = list(face="bold.italic"), align = "v", common.legend = T, legend = "bottom")
 
 Kleaf.plots <- annotate_figure(
   Kleaf.plots,
